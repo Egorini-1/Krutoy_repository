@@ -1,0 +1,155 @@
+import json
+import os
+from datetime import datetime
+
+ORDERS_FILE = "orders.json"
+
+Pizza_menu = {
+    1: ("Маргарита", 599),
+    2: ("Пепперони", 649),
+    3: ("Четыре сыра", 879),
+    4: ("Гавайская", 899),
+    5: ("Грибная", 679),
+    6: ("Мясная", 849)
+}
+
+Kids_menu = {
+    1: ("Мороженое", 149),
+    2: ("Коктейль", 179),
+    3: ("Наггетсы", 129),
+    4: ("Сырные палочки", 199),
+    5: ("Мини Пепперони", 399),
+    6: ("Мини Сырная", 349)
+}
+
+def load_orders():
+    if not os.path.exists(ORDERS_FILE):
+        return {}
+    try:
+        with open(ORDERS_FILE, "r", encoding = "utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, I0Error):
+        return {}
+
+def save_orders(order):
+    orders = load_orders()
+    orders.append(order)
+    with open(ORDERS_FILE, "w", encoding = "utf-8") as f:
+        json.dump(orders, f, ensure_ascii = False, indent = 2)
+
+def get_age():
+    while True:
+        try:
+            age_client = int(input("Укажите возраст клиента: "))
+            if age_client < 0:
+                print("Некорректный возраст!")
+                continue
+            return age_client
+        except ValueError:
+            print("Некорректное число!")
+
+def show_menu(age_client):
+    if age_client < 10:
+        print("     Детское меню:")
+        current_menu = Kids_menu
+    else:
+        print("     Пиццы:")
+        current_menu = Pizza_menu
+    print()
+    for num, (name, price) in current_menu.items():
+        print(f"{num}: {name} - {price}")
+    return current_menu
+
+def get_position(menu):
+    total = 0
+    position = {}
+    while True:
+        try:
+            choice = int(input("Введите номер выбранной позиции. Если завершили заказ, нажмите 0: "))
+        except ValueError:
+            print("Некорректный выбор!")
+            continue
+
+        if choice == 0:
+            break
+        if choice in menu:
+            name, price = menu[choice]
+            total = total + price
+            position.append({"Позиции": name, "Сумма заказа": price})
+            print(f"Добавлено: {name} за {price}р . Текущая сумма: {total}")
+        else:
+            print("Такой позиции нет в меню!")
+    return position, total
+
+def pay(total):
+    if total == 0:
+        print("Сначала сделайте заказ!")
+        return
+    print(f"Итоговыя сумма к оплате: {total}р")
+    while True:
+        pay_method = input("Чем будите оплачивать? (Наличными/Картой): ")
+        if pay_method == "Картой":
+            print("Оплата принята!")
+            return "Картой", None
+        elif pay_method == "Наличными":
+            while True:
+                try:
+                    cash_give = float(input("Введите сумму которой вы хотите оплатить заказ: "))
+                    if cash_give < total:
+                        print("Недостаточно средств!")
+                        continue
+                    change = cash_give - total
+                    print("Принято!")
+                    print(f"Ваша сдача: {change}р")
+                    return "Наличными", change
+                except ValueError:
+                    print("Некорректная сумма!")
+        else:
+            print("Некорректный способ оплаты!")
+
+def admin_panel():
+    orders = load_orders()
+    if not orders:
+        print("История заказов пуста")
+        return
+
+    print("  Панель администратора: история заказов")
+    print()
+    for order in orders:
+        print(f"ID: {order['id']}")
+        print(f"Дата: {order['date']}")
+        print(f"Клиент: {order['client_age']}")
+        print("Позиции:")
+        for i in order["position"]:
+            print(f" - {i['name']} - {i['price']}р.")
+        print(f"Сумма: {order['total']}р.")
+        print(f"Оплата: {order['paymet_method']}")
+        if order["paymet_method"] == "Наличными":
+            print(f"Сдача: {order.get('change')}р.")
+
+try:
+    while True:
+        quantity_clients = int(input("Сколько человек в заказе?: "))
+        try:
+            quantity_clients = int(quantity_clients)
+            if quantity_clients <= 0:
+                print("Некорректное кол-во человек в заказе!")
+                continue
+            break
+        except ValueError:
+            print("Введите целое положительное число!")
+
+    all_total = 0
+    for i in range(quantity_clients):
+        print(f"   Клиент №{i + 1}")
+        age_client = get_age()
+        current_menu = menu(age_client)
+        order_sum = get_position(current_menu)
+        all_total += order_sum
+
+    print()
+    pay(all_total)
+    print("Спасибо за заказ! Приходите еще!")
+
+except ValueError:
+    print("Введено некорректное число для кол-ва гостей!")
